@@ -6,4 +6,4 @@ Teste de entradas:
 
 Senha ADM: admin@appscholar.com / admin123
 Senha Aluno: eli.rdc@fatec.com.br / 1234
-Senha Professor: andre@fatec.com.br / 123456
+Senha Professor: edu@fatec.com.br / 123
