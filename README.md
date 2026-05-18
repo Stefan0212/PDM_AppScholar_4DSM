@@ -4,6 +4,6 @@ Projeto da matéria de programação dispositivos moveis do 4DSM.
 
 Teste de entradas:
 
-Senha ADM: admin@appscholar.com / admin123
-Senha Aluno: eli.rdc@fatec.com.br / 1234
-Senha Professor: edu@fatec.com.br / 123
+Email ADM: admin@fatec.com 
+Email Prof: prof@fatec.com 
+Email Aluno: aluno@fatec.com 
