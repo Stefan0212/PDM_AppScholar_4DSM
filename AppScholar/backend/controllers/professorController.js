@@ -90,7 +90,19 @@ const getDisciplinasProfessor = async (req, res) => {
   }
 };
 
+const listarProfessores = async (req, res) => {
+  try {
+    const query = 'SELECT id_professor, nome, area, titulacao FROM professores ORDER BY nome';
+    const result = await db.query(query);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Erro ao listar professores:', error);
+    res.status(500).json({ error: 'Erro interno no servidor ao listar professores.' });
+  }
+};
+
 module.exports = {
   cadastrarProfessor,
-  getDisciplinasProfessor
+  getDisciplinasProfessor,
+  listarProfessores
 };

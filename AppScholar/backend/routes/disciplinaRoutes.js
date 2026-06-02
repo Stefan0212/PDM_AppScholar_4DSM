@@ -5,6 +5,9 @@ const disciplinaController = require('../controllers/disciplinaController');
 // POST /api/disciplinas
 router.post('/', disciplinaController.cadastrarDisciplina);
 
+// GET /api/disciplinas -> ROTA NOVA ADICIONADA AQUI
+router.get('/', disciplinaController.listarDisciplinas);
+
 // GET /api/disciplinas/:id_disciplina/alunos
 router.get('/:id_disciplina/alunos', disciplinaController.getAlunosDisciplina);
 
