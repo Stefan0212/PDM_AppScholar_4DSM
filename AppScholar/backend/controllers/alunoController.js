@@ -75,6 +75,18 @@ const cadastrarAluno = async (req, res) => {
   }
 };
 
+const listarAlunos = async (req, res) => {
+  try {
+    const query = 'SELECT id_aluno, nome, matricula, curso, telefone FROM alunos ORDER BY nome';
+    const result = await db.query(query);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Erro ao listar alunos:', error);
+    res.status(500).json({ error: 'Erro interno no servidor ao listar alunos.' });
+  }
+};
+
 module.exports = {
-  cadastrarAluno
+  cadastrarAluno,
+  listarAlunos
 };

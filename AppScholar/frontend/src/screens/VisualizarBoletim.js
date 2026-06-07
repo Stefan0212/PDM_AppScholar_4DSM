@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../hooks/AuthContext';
 import api from '../services/api';
+import { colors, cardShadow } from '../styles/theme';
 
 export default function VisualizarBoletim() {
   const { user } = useContext(AuthContext);
@@ -30,71 +32,238 @@ export default function VisualizarBoletim() {
     }
 
     fetchBoletim();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007bff" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
+  // Estatísticas do boletim
+  const disciplinas = boletim?.disciplinas || [];
+  const totalDisciplinas = disciplinas.length;
+  const aprovadas = disciplinas.filter(d => d.situacao === 'Aprovado').length;
+  const cursando = disciplinas.filter(d => d.situacao === 'Cursando').length;
+
   const renderItem = ({ item }) => {
-    let color = '#f1c40f'; // Amarelo (Cursando)
-    if (item.situacao === 'Aprovado') color = '#2ecc71'; // Verde
-    if (item.situacao === 'Reprovado') color = '#e74c3c'; // Vermelho
+    let statusColor = colors.warning; // Amarelo (Cursando)
+    let statusBg = colors.warningLight;
+    
+    if (item.situacao === 'Aprovado') {
+      statusColor = colors.success; // Verde
+      statusBg = colors.successLight;
+    } else if (item.situacao === 'Reprovado') {
+      statusColor = colors.danger; // Vermelho
+      statusBg = colors.dangerLight;
+    }
 
     return (
-      <View style={[styles.card, { borderLeftColor: color }]}>
-        <Text style={styles.disciplinaNome}>{item.disciplina}</Text>
-        <View style={styles.notasContainer}>
-          <Text style={styles.notaTexto}>Nota 1: {item.nota1 !== null ? item.nota1 : '-'}</Text>
-          <Text style={styles.notaTexto}>Nota 2: {item.nota2 !== null ? item.nota2 : '-'}</Text>
-          <Text style={styles.mediaTexto}>Média: {item.media !== null ? item.media : '-'}</Text>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.disciplinaNome}>{item.disciplina}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+            <Text style={[styles.statusText, { color: statusColor }]}>{item.situacao}</Text>
+          </View>
         </View>
-        <Text style={[styles.situacaoTexto, { color }]}>{item.situacao}</Text>
+
+        <View style={styles.divider} />
+
+        <View style={styles.scoresRow}>
+          <View style={styles.scoreBlock}>
+            <Text style={styles.scoreLabel}>Nota 1</Text>
+            <Text style={styles.scoreVal}>{item.nota1 !== null ? item.nota1 : '-'}</Text>
+          </View>
+          <View style={styles.scoreBlock}>
+            <Text style={styles.scoreLabel}>Nota 2</Text>
+            <Text style={styles.scoreVal}>{item.nota2 !== null ? item.nota2 : '-'}</Text>
+          </View>
+          <View style={styles.scoreBlock}>
+            <Text style={[styles.scoreLabel, { fontWeight: '700' }]}>Média Final</Text>
+            <Text style={[styles.scoreVal, { fontWeight: '800', color: colors.textDark }]}>
+              {item.media !== null ? item.media : '-'}
+            </Text>
+          </View>
+        </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.headerTitle}>Boletim Acadêmico</Text>
-      {boletim && <Text style={styles.alunoNome}>Aluno: {boletim.aluno}</Text>}
-      
+    <SafeAreaView style={styles.container}>
       <FlatList
-        data={boletim?.disciplinas || []}
+        data={disciplinas}
         keyExtractor={(item, index) => String(index)}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma disciplina encontrada.</Text>}
+        ListHeaderComponent={
+          <View style={styles.headerContainer}>
+            {/* Bloco de Visão Geral do Aluno */}
+            <View style={styles.studentCard}>
+              <Ionicons name="school" size={24} color={colors.primary} />
+              <View style={{ marginLeft: 12 }}>
+                <Text style={styles.alunoLabel}>Estudante</Text>
+                <Text style={styles.alunoNome}>{boletim?.aluno || user?.nome}</Text>
+              </View>
+            </View>
+
+            {/* Painel de Estatísticas Acadêmicas */}
+            {totalDisciplinas > 0 && (
+              <View style={styles.statsPanel}>
+                <View style={styles.statBox}>
+                  <Text style={styles.statVal}>{totalDisciplinas}</Text>
+                  <Text style={styles.statLabel}>Matérias</Text>
+                </View>
+                <View style={[styles.statBox, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.border }]}>
+                  <Text style={[styles.statVal, { color: colors.success }]}>{aprovadas}</Text>
+                  <Text style={styles.statLabel}>Aprovadas</Text>
+                </View>
+                <View style={styles.statBox}>
+                  <Text style={[styles.statVal, { color: colors.warning }]}>{cursando}</Text>
+                  <Text style={styles.statLabel}>Cursando</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="document-text-outline" size={64} color={colors.textLight} />
+            <Text style={styles.emptyText}>Você não está matriculado em nenhuma disciplina.</Text>
+          </View>
+        }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 8, color: '#333' },
-  alunoNome: { fontSize: 16, marginBottom: 16, color: '#555' },
-  listContent: { paddingBottom: 20 },
-  card: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderLeftWidth: 6,
-    elevation: 2, // Sombra no Android
-    shadowColor: '#000', // Sombra no iOS
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+  container: { 
+    flex: 1, 
+    backgroundColor: colors.background 
   },
-  disciplinaNome: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
-  notasContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  notaTexto: { fontSize: 14, color: '#666' },
-  mediaTexto: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  situacaoTexto: { fontSize: 16, fontWeight: 'bold', textAlign: 'right' },
-  emptyText: { textAlign: 'center', marginTop: 20, color: '#666', fontSize: 16 }
+  center: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: colors.background 
+  },
+  listContent: { 
+    padding: 20,
+    paddingBottom: 40 
+  },
+  headerContainer: {
+    marginBottom: 20,
+  },
+  studentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBg,
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 16,
+    ...cardShadow,
+  },
+  alunoLabel: {
+    fontSize: 11,
+    color: colors.textLight,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  alunoNome: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textDark,
+    marginTop: 2,
+  },
+  statsPanel: {
+    flexDirection: 'row',
+    backgroundColor: colors.cardBg,
+    borderRadius: 14,
+    paddingVertical: 14,
+    ...cardShadow,
+  },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statVal: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.textDark,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: colors.textLight,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  card: {
+    backgroundColor: colors.cardBg,
+    padding: 18,
+    borderRadius: 14,
+    marginBottom: 16,
+    ...cardShadow,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  disciplinaNome: { 
+    fontSize: 16, 
+    fontWeight: '700', 
+    color: colors.textDark,
+    flex: 1,
+    marginRight: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#f1f2f6',
+    marginBottom: 12,
+  },
+  scoresRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  scoreBlock: {
+    alignItems: 'center',
+  },
+  scoreLabel: {
+    fontSize: 11,
+    color: colors.textLight,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  scoreVal: {
+    fontSize: 16,
+    color: colors.textDark,
+    fontWeight: '700',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: { 
+    textAlign: 'center', 
+    color: colors.textLight, 
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 16,
+  }
 });

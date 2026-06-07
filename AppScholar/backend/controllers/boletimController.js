@@ -1,66 +1,40 @@
 const db = require('../database/db');
 
-// Automação de Alocação de Semestre (Matrícula em Lote)
-const matricularSemestre = async (req, res) => {
-  const { id_aluno, curso, semestre } = req.body;
+// Nova Lógica: Matrícula direta de Aluno em uma Disciplina Específica
+const matricularAluno = async (req, res) => {
+  const { aluno_id, disciplina_id } = req.body;
 
-  if (!id_aluno || !curso || !semestre) {
-    return res.status(400).json({ error: 'id_aluno, curso e semestre são obrigatórios.' });
+  if (!aluno_id || !disciplina_id) {
+    return res.status(400).json({ error: 'aluno_id e disciplina_id são obrigatórios.' });
   }
 
-  const client = await db.getPool().connect();
-
   try {
-    await client.query('BEGIN');
-
-    // 1. Buscar todas as disciplinas do curso e semestre
-    const disciplinasQuery = `
-      SELECT id_disciplina 
-      FROM disciplinas 
-      WHERE curso = $1 AND semestre = $2
-    `;
-    const disciplinasResult = await client.query(disciplinasQuery, [curso, semestre]);
-
-    if (disciplinasResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Nenhuma disciplina encontrada para este curso e semestre.' });
-    }
-
-    const disciplinas = disciplinasResult.rows;
-    let disciplinasMatriculadas = 0;
-
-    // 2. Inserir na tabela notas para cada disciplina
+    // Insere na tabela notas (que faz o vínculo real)
     const insertNotaQuery = `
       INSERT INTO notas (aluno_id, disciplina_id, situacao)
       VALUES ($1, $2, 'Cursando')
       ON CONFLICT (aluno_id, disciplina_id) DO NOTHING
+      RETURNING *;
     `;
 
-    for (const disciplina of disciplinas) {
-      const result = await client.query(insertNotaQuery, [id_aluno, disciplina.id_disciplina]);
-      if (result.rowCount > 0) {
-        disciplinasMatriculadas++;
-      }
+    const result = await db.query(insertNotaQuery, [aluno_id, disciplina_id]);
+
+    if (result.rowCount === 0) {
+      return res.status(400).json({ error: 'O aluno já está matriculado nesta disciplina.' });
     }
 
-    await client.query('COMMIT');
-
     res.status(201).json({
-      message: 'Matrícula em lote realizada com sucesso!',
-      disciplinasEncontradas: disciplinas.length,
-      novasMatriculas: disciplinasMatriculadas
+      message: 'Matrícula realizada com sucesso!',
+      matricula: result.rows[0]
     });
 
   } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Erro na matrícula de semestre:', error);
+    console.error('Erro na matrícula:', error);
     res.status(500).json({ error: 'Erro interno no servidor ao realizar matrícula.' });
-  } finally {
-    client.release();
   }
 };
 
-// Consulta de Boletim
+// Consulta de Boletim (Mantido o seu padrão)
 const consultarBoletim = async (req, res) => {
   const { matricula } = req.params;
 
@@ -77,6 +51,7 @@ const consultarBoletim = async (req, res) => {
     // 2. Buscar disciplinas e notas (JOIN)
     const boletimQuery = `
       SELECT 
+        n.id_nota,
         d.nome AS disciplina,
         n.nota1,
         n.nota2,
@@ -99,7 +74,7 @@ const consultarBoletim = async (req, res) => {
   }
 };
 
-// Atualizar Notas (N1 e N2) e calcular a média
+// Atualizar Notas (N1 e N2) e calcular a média (Mantido o seu padrão)
 const atualizarNota = async (req, res) => {
   const { id_nota } = req.params;
   let { nota1, nota2 } = req.body;
@@ -144,7 +119,7 @@ const atualizarNota = async (req, res) => {
 };
 
 module.exports = {
-  matricularSemestre,
+  matricularAluno,
   consultarBoletim,
   atualizarNota
 };

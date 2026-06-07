@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../hooks/AuthContext';
 import api from '../services/api';
+import { colors, cardShadow } from '../styles/theme';
 
 export default function MinhasDisciplinas({ navigation }) {
   const { user } = useContext(AuthContext);
@@ -20,7 +22,6 @@ export default function MinhasDisciplinas({ navigation }) {
       }
     }
 
-    // Usar um listener de foco para atualizar sempre que voltar para esta tela
     const unsubscribe = navigation.addListener('focus', () => {
       carregarDisciplinas();
     });
@@ -30,8 +31,8 @@ export default function MinhasDisciplinas({ navigation }) {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#007bff" />
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -40,40 +41,150 @@ export default function MinhasDisciplinas({ navigation }) {
     <TouchableOpacity 
       style={styles.card}
       onPress={() => navigation.navigate('LancamentoNotas', { disciplina: item })}
+      activeOpacity={0.7}
     >
-      <Text style={styles.title}>{item.nome}</Text>
-      <Text style={styles.subtitle}>{item.curso} - {item.semestre}º Semestre</Text>
-      <Text style={styles.actionText}>Toque para ver os alunos e lançar notas</Text>
+      <View style={styles.cardHeader}>
+        <Text style={styles.title}>{item.nome}</Text>
+        <Ionicons name="people-outline" size={20} color={colors.primary} />
+      </View>
+      
+      <Text style={styles.courseText}>{item.curso}</Text>
+      
+      <View style={styles.badgeContainer}>
+        <View style={[styles.badge, styles.badgePrimary]}>
+          <Text style={styles.badgeText}>{item.semestre}º Semestre</Text>
+        </View>
+        <View style={[styles.badge, styles.badgeSecondary]}>
+          <Text style={styles.badgeText}>{item.carga_horaria} Horas</Text>
+        </View>
+      </View>
+      
+      <View style={styles.cardFooter}>
+        <Text style={styles.actionText}>Gerenciar alunos e notas</Text>
+        <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+      </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FlatList
         data={turmas}
         keyExtractor={(item) => String(item.id_disciplina)}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma disciplina encontrada.</Text>}
+        ListHeaderComponent={
+          <Text style={styles.subtitle}>
+            Selecione uma disciplina abaixo para listar os alunos matriculados e realizar lançamentos de notas.
+          </Text>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="journal-outline" size={64} color={colors.textLight} />
+            <Text style={styles.emptyText}>Nenhuma disciplina vinculada a você.</Text>
+          </View>
+        }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  listContent: { paddingBottom: 20 },
-  card: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    elevation: 2,
-    borderLeftWidth: 4,
-    borderLeftColor: '#007bff'
+  container: { 
+    flex: 1, 
+    backgroundColor: colors.background 
   },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#666', marginBottom: 12 },
-  actionText: { fontSize: 14, color: '#007bff', fontWeight: 'bold', textAlign: 'right' },
-  emptyText: { textAlign: 'center', marginTop: 20, color: '#666', fontSize: 16 }
+  center: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: colors.background 
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.textLight,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  listContent: { 
+    padding: 20,
+    paddingBottom: 40 
+  },
+  card: {
+    backgroundColor: colors.cardBg,
+    padding: 18,
+    borderRadius: 14,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+    ...cardShadow,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
+  title: { 
+    fontSize: 18, 
+    fontWeight: '700', 
+    color: colors.textDark,
+    flex: 1,
+    paddingRight: 8,
+  },
+  courseText: { 
+    fontSize: 14, 
+    color: colors.textLight, 
+    fontWeight: '600',
+    marginBottom: 12 
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  badgePrimary: {
+    backgroundColor: '#eae8ff',
+  },
+  badgeSecondary: {
+    backgroundColor: '#e3f2fd',
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textDark,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#f1f2f6',
+    paddingTop: 12,
+  },
+  actionText: { 
+    fontSize: 13, 
+    color: colors.primary, 
+    fontWeight: '700' 
+  },
+  emptyContainer: { 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginTop: 40,
+    padding: 20,
+  },
+  emptyText: { 
+    textAlign: 'center', 
+    color: colors.textLight, 
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 16,
+  }
 });

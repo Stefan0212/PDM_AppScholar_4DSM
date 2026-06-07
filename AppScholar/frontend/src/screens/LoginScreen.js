@@ -1,64 +1,158 @@
-import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import React, { useState, useContext, useRef, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ScrollView,
+  Keyboard,
+} from 'react-native';
 import { AuthContext } from '../hooks/AuthContext';
 import { CustomInput } from '../components/CustomInput';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { colors, shadow } from '../styles/theme';
+
+// Validação simples de formato de e-mail
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 export default function LoginScreen() {
   const { login } = useContext(AuthContext);
-  
+
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Erros inline por campo
+  const [emailError, setEmailError] = useState('');
+  const [senhaError, setSenhaError] = useState('');
+
+  // Refs para foco programático
+  const senhaRef = useRef(null);
+
+  // --- Validação em tempo real ---
+  const handleEmailBlur = useCallback(() => {
+    if (email && !isValidEmail(email.trim())) {
+      setEmailError('Formato de e-mail inválido');
+    } else {
+      setEmailError('');
+    }
+  }, [email]);
+
+  const handleEmailChange = useCallback((text) => {
+    setEmail(text);
+    if (emailError) setEmailError('');
+  }, [emailError]);
+
+  const handleSenhaChange = useCallback((text) => {
+    setSenha(text);
+    if (senhaError) setSenhaError('');
+  }, [senhaError]);
+
+  // --- Submit ---
   const handleLogin = async () => {
-    if (!email || !senha) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
-      return;
+    Keyboard.dismiss();
+
+    let hasError = false;
+
+    if (!email.trim()) {
+      setEmailError('O e-mail é obrigatório');
+      hasError = true;
+    } else if (!isValidEmail(email.trim())) {
+      setEmailError('Formato de e-mail inválido');
+      hasError = true;
     }
 
-    setLoading(true);
-    const result = await login(email, senha);
-    setLoading(false);
+    if (!senha) {
+      setSenhaError('A senha é obrigatória');
+      hasError = true;
+    }
 
-    if (!result.success) {
-      Alert.alert('Erro no Login', result.message);
+    if (hasError) return;
+
+    setLoading(true);
+    try {
+      const result = await login(email.trim(), senha);
+      if (!result.success) {
+        Alert.alert('Falha na Autenticação', result.message);
+      }
+    } catch {
+      Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
+      // Ajuste: usar 'height' no Android força o contêiner a redimensionar corretamente
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // Ajuste opcional de offset para garantir um respiro melhor dependendo da barra de status
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>App Scholar</Text>
-        <Text style={styles.subtitle}>Faça login para continuar</Text>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.card}>
+          {/* Logo e Cabeçalho */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoBadgeText}>AS</Text>
+            </View>
+            <Text style={styles.title}>App Scholar</Text>
+            <Text style={styles.subtitle}>Gestão e Acompanhamento Acadêmico</Text>
+          </View>
 
-        <CustomInput
-          label="E-mail"
-          placeholder="Digite seu e-mail"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
+          {/* Formulário */}
+          <View style={styles.form}>
+            <CustomInput
+              label="E-mail Institucional"
+              placeholder="Ex: joao@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => senhaRef.current?.focus()}
+              value={email}
+              onChangeText={handleEmailChange}
+              onBlur={handleEmailBlur}
+              error={emailError}
+            />
 
-        <CustomInput
-          label="Senha"
-          placeholder="Digite sua senha"
-          secureTextEntry
-          value={senha}
-          onChangeText={setSenha}
-        />
+            <CustomInput
+              ref={senhaRef}
+              label="Senha de Acesso"
+              placeholder="Digite sua senha"
+              secureTextEntry
+              autoCapitalize="none"
+              autoComplete="password"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
+              value={senha}
+              onChangeText={handleSenhaChange}
+              error={senhaError}
+            />
 
-        <PrimaryButton
-          title="Entrar"
-          onPress={handleLogin}
-          loading={loading}
-          style={styles.button}
-        />
-      </View>
+            <PrimaryButton
+              title="Acessar Sistema"
+              onPress={handleLogin}
+              loading={loading}
+              style={styles.button}
+            />
+          </View>
+        </View>
+        <Text style={styles.footerText}>FATEC Jacareí • PDM I</Text>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -66,27 +160,69 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
-  formContainer: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
+    padding: 20,
+    // Ajuste: garante um espaço extra no fim da rolagem para a tela ser "empurrada" para cima
+    paddingBottom: Platform.OS === 'android' ? 60 : 40,
+  },
+  card: {
+    backgroundColor: colors.cardBg,
+    borderRadius: 16,
     paddingHorizontal: 24,
+    paddingVertical: 32,
+    ...shadow,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#007bff',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
+  logoContainer: {
+    alignItems: 'center',
     marginBottom: 32,
   },
+  logoBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  logoBadgeText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.textDark,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.textLight,
+    textAlign: 'center',
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  form: {
+    width: '100%',
+  },
   button: {
-    marginTop: 16,
+    marginTop: 12,
+  },
+  footerText: {
+    textAlign: 'center',
+    marginTop: 24,
+    color: colors.textLight,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });
