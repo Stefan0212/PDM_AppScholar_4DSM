@@ -9,8 +9,8 @@ prof.andre@fatec.sp.gov.br
 senha_prof_123
 
 dados aluno:
-aluno.teste@fatec.sp.gov.br
-senha_segura_123
+lara@fatec.sp.gov.br
+123
 
 dados adm:
 admin@appscholar.com
