@@ -87,8 +87,10 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      // Ajuste: usar 'height' no Android força o contêiner a redimensionar corretamente
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // Ajuste opcional de offset para garantir um respiro melhor dependendo da barra de status
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <ScrollView
         style={styles.scrollView}
@@ -167,6 +169,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
+    // Ajuste: garante um espaço extra no fim da rolagem para a tela ser "empurrada" para cima
+    paddingBottom: Platform.OS === 'android' ? 60 : 40,
   },
   card: {
     backgroundColor: colors.cardBg,
