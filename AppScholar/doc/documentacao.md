@@ -66,15 +66,15 @@ graph TD
 erDiagram
     USUARIOS {
         int id_usuario PK
-        string email UNIQUE
+        string email UK
         string senha
-        string perfil "ENUM('aluno', 'professor', 'admin')"
+        string perfil
     }
     ALUNOS {
         int id_aluno PK
         int id_usuario FK
         string nome
-        string matricula UNIQUE
+        string matricula UK
         string curso
         string telefone
     }
@@ -109,15 +109,15 @@ erDiagram
         numeric nota1
         numeric nota2
         numeric media
-        string situacao "DEFAULT 'Cursando'"
+        string situacao
     }
 
-    USUARIOS ||--o| ALUNOS : "1:1 vincula credencial"
-    USUARIOS ||--o| PROFESSORES : "1:1 vincula credencial"
-    ALUNOS ||--|| LOCALIZACAO : "1:1 reside em"
-    PROFESSORES ||--o{ DISCIPLINAS : "1:N leciona"
-    ALUNOS ||--o{ NOTAS : "1:N possui"
-    DISCIPLINAS ||--o{ NOTAS : "1:N contem"
+    USUARIOS ||--o| ALUNOS : "vincula credencial"
+    USUARIOS ||--o| PROFESSORES : "vincula credencial"
+    ALUNOS ||--|| LOCALIZACAO : "reside em"
+    PROFESSORES ||--o{ DISCIPLINAS : "leciona"
+    ALUNOS ||--o{ NOTAS : "possui"
+    DISCIPLINAS ||--o{ NOTAS : "contem"
 ```
 
 ---
